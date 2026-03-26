@@ -1,0 +1,17 @@
+{
+  "name": "ai-dungeon-master",
+  "version": "1.0.0",
+  "description": "AI Dungeon Master — A real-time D&D game master powered by LLMs and AI image generation",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "keywords": ["dnd", "ai", "dungeon-master", "rpg", "llm", "game"],
+  "author": "Naitik Raj",
+  "license": "MIT",
+  "devDependencies": {
+    "vite": "^6.0.0"
+  }
+}

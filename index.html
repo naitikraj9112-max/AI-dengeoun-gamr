@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Dungeon Master — Your D&D Adventure Awaits</title>
+  <meta name="description" content="A real-time D&D game master powered by AI. Generate storylines, battle monsters, and shape your adventure with LLM-driven storytelling and AI-generated scene art." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=MedievalSharp&family=Inter:wght@300;400;500;600;700&family=Cinzel:wght@400;600;700&family=Cinzel+Decorative:wght@400;700&display=swap" rel="stylesheet" />
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🐉</text></svg>" />
+</head>
+<body>
+  <!-- ===== LOADING SCREEN ===== -->
+  <div id="loading-screen" class="loading-screen">
+    <div class="loading-content">
+      <div class="loading-dragon">🐉</div>
+      <h1 class="loading-title">AI Dungeon Master</h1>
+      <p class="loading-subtitle">Preparing your adventure...</p>
+      <div class="loading-bar"><div class="loading-bar-fill"></div></div>
+    </div>
+  </div>
+
+  <!-- ===== SETTINGS MODAL ===== -->
+  <div id="settings-modal" class="modal-overlay hidden">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>⚙️ Settings</h2>
+        <button id="close-settings" class="btn-icon" aria-label="Close settings">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="setting-group">
+          <label for="api-key-input">🔑 Google Gemini API Key</label>
+          <p class="setting-hint">Get a free key at <a href="https://aistudio.google.com/apikey" target="_blank">aistudio.google.com</a></p>
+          <div class="input-row">
+            <input type="password" id="api-key-input" placeholder="Enter your Gemini API key..." />
+            <button id="toggle-key-visibility" class="btn-icon" aria-label="Toggle key visibility">👁️</button>
+          </div>
+        </div>
+        <div class="setting-group">
+          <label for="text-speed">📜 Text Speed</label>
+          <input type="range" id="text-speed" min="10" max="80" value="35" />
+          <div class="range-labels"><span>Fast</span><span>Slow</span></div>
+        </div>
+        <div class="setting-group">
+          <label>🔊 Audio</label>
+          <div class="toggle-row">
+            <span>Ambient Sounds</span>
+            <button id="toggle-audio" class="toggle-btn active" aria-label="Toggle audio">
+              <span class="toggle-knob"></span>
+            </button>
+          </div>
+          <div class="toggle-row">
+            <span>Sound Effects</span>
+            <button id="toggle-sfx" class="toggle-btn active" aria-label="Toggle SFX">
+              <span class="toggle-knob"></span>
+            </button>
+          </div>
+        </div>
+        <button id="save-settings" class="btn-primary">Save Settings</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== CHARACTER CREATION ===== -->
+  <div id="character-creation" class="screen hidden">
+    <div class="creation-container">
+      <div class="creation-header">
+        <h1 class="creation-title">⚔️ Forge Your Hero</h1>
+        <p class="creation-subtitle">Every legend begins with a single step</p>
+      </div>
+      <div class="creation-steps">
+        <!-- Step 1: Name -->
+        <div id="step-name" class="creation-step active">
+          <h2>What is your name, adventurer?</h2>
+          <input type="text" id="char-name" placeholder="Enter your character's name..." maxlength="30" />
+        </div>
+        <!-- Step 2: Race -->
+        <div id="step-race" class="creation-step hidden">
+          <h2>Choose your lineage</h2>
+          <div class="option-grid" id="race-options"></div>
+        </div>
+        <!-- Step 3: Class -->
+        <div id="step-class" class="creation-step hidden">
+          <h2>Choose your path</h2>
+          <div class="option-grid" id="class-options"></div>
+        </div>
+        <!-- Step 4: Stats -->
+        <div id="step-stats" class="creation-step hidden">
+          <h2>Roll your fate</h2>
+          <div id="stat-rolls" class="stat-grid"></div>
+          <button id="reroll-stats" class="btn-secondary">🎲 Reroll Stats</button>
+        </div>
+        <!-- Step 5: Summary -->
+        <div id="step-summary" class="creation-step hidden">
+          <h2>Your Hero</h2>
+          <div id="char-summary" class="char-summary-card"></div>
+        </div>
+      </div>
+      <div class="creation-nav">
+        <button id="prev-step" class="btn-secondary hidden">← Back</button>
+        <button id="next-step" class="btn-primary">Continue →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== MAIN GAME ===== -->
+  <div id="game-screen" class="screen hidden">
+    <!-- Top Bar -->
+    <header class="game-header">
+      <div class="header-left">
+        <span class="game-logo">🐉</span>
+        <h1 class="game-title">AI Dungeon Master</h1>
+      </div>
+      <div class="header-right">
+        <div id="turn-counter" class="turn-counter">Turn 1</div>
+        <button id="open-settings" class="btn-icon header-btn" aria-label="Open settings">⚙️</button>
+      </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="game-main">
+      <!-- Left Sidebar — Character Sheet -->
+      <aside class="sidebar sidebar-left" id="character-sidebar">
+        <div class="sidebar-section">
+          <div id="char-portrait" class="char-portrait">
+            <div class="portrait-placeholder">🧙</div>
+          </div>
+          <h3 id="char-display-name" class="char-name-display">Hero</h3>
+          <p id="char-race-class" class="char-subtitle">Human Fighter</p>
+        </div>
+        <div class="sidebar-section">
+          <div class="hp-bar-container">
+            <div class="hp-bar-label">
+              <span>❤️ HP</span>
+              <span id="hp-text">20 / 20</span>
+            </div>
+            <div class="hp-bar">
+              <div id="hp-fill" class="hp-bar-fill" style="width: 100%"></div>
+            </div>
+          </div>
+          <div class="xp-bar-container">
+            <div class="hp-bar-label">
+              <span>⭐ XP</span>
+              <span id="xp-text">0 / 100</span>
+            </div>
+            <div class="xp-bar">
+              <div id="xp-fill" class="xp-bar-fill" style="width: 0%"></div>
+            </div>
+          </div>
+        </div>
+        <div class="sidebar-section">
+          <h4>📊 Stats</h4>
+          <div id="stats-display" class="stats-grid"></div>
+        </div>
+        <div class="sidebar-section">
+          <h4>🎒 Inventory</h4>
+          <div id="inventory-list" class="inventory-list">
+            <p class="empty-text">No items yet</p>
+          </div>
+        </div>
+        <div class="sidebar-section">
+          <h4>📜 Quest Log</h4>
+          <div id="quest-log" class="quest-log">
+            <p class="empty-text">No quests yet</p>
+          </div>
+        </div>
+      </aside>
+
+      <!-- Center — Narrative -->
+      <section class="game-center">
+        <div id="narrative-panel" class="narrative-panel">
+          <div id="story-content" class="story-content"></div>
+          <div id="typing-indicator" class="typing-indicator hidden">
+            <span></span><span></span><span></span>
+          </div>
+        </div>
+        <div id="player-input" class="player-input">
+          <div id="choice-buttons" class="choice-buttons"></div>
+          <div class="custom-input-row">
+            <input type="text" id="custom-action" placeholder="Or type a custom action..." />
+            <button id="send-action" class="btn-send" aria-label="Send action">➤</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Right Sidebar — Scene Viewer -->
+      <aside class="sidebar sidebar-right" id="scene-sidebar">
+        <div class="sidebar-section">
+          <h4>🖼️ Scene</h4>
+          <div id="scene-viewer" class="scene-viewer">
+            <div class="scene-placeholder">
+              <span>🏰</span>
+              <p>Your adventure scene will appear here</p>
+            </div>
+          </div>
+        </div>
+        <div class="sidebar-section" id="combat-panel" style="display:none;">
+          <h4>⚔️ Combat</h4>
+          <div id="combat-info" class="combat-info"></div>
+        </div>
+        <div class="sidebar-section">
+          <h4>🎲 Dice Log</h4>
+          <div id="dice-log" class="dice-log">
+            <p class="empty-text">No rolls yet</p>
+          </div>
+        </div>
+      </aside>
+    </main>
+  </div>
+
+  <!-- ===== COMBAT OVERLAY ===== -->
+  <div id="combat-overlay" class="combat-overlay hidden">
+    <div class="combat-container">
+      <div class="combat-header">
+        <h2>⚔️ COMBAT ⚔️</h2>
+        <div id="initiative-order" class="initiative-order"></div>
+      </div>
+      <div class="combat-arena">
+        <div class="combatant combatant-player" id="player-combatant">
+          <div class="combatant-portrait">🧙</div>
+          <div class="combatant-name" id="combat-player-name">Hero</div>
+          <div class="combatant-hp-bar">
+            <div id="combat-player-hp" class="hp-bar-fill" style="width:100%"></div>
+          </div>
+        </div>
+        <div class="combat-vs">VS</div>
+        <div class="combatant combatant-enemy" id="enemy-combatant">
+          <div class="combatant-portrait" id="enemy-portrait">👹</div>
+          <div class="combatant-name" id="combat-enemy-name">Enemy</div>
+          <div class="combatant-hp-bar">
+            <div id="combat-enemy-hp" class="hp-bar-fill enemy-hp" style="width:100%"></div>
+          </div>
+        </div>
+      </div>
+      <div id="combat-log" class="combat-log"></div>
+      <div id="dice-display" class="dice-display hidden">
+        <div id="dice-result" class="dice-result"></div>
+      </div>
+      <div id="combat-actions" class="combat-actions">
+        <button class="btn-combat btn-attack" data-action="attack">⚔️ Attack</button>
+        <button class="btn-combat btn-defend" data-action="defend">🛡️ Defend</button>
+        <button class="btn-combat btn-magic" data-action="magic">✨ Magic</button>
+        <button class="btn-combat btn-flee" data-action="flee">🏃 Flee</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== NOTIFICATION TOAST ===== -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>
